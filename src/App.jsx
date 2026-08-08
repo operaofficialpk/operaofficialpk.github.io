@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 
 import Navbar from "./components/Navbar";
@@ -27,7 +27,7 @@ function ScrollToTop() {
 
 function App() {
   return (
-    <BrowserRouter>
+    <>
       <ScrollToTop />
       <Navbar />
 
@@ -45,7 +45,7 @@ function App() {
 
       <Footer />
       <WhatsAppButton />
-    </BrowserRouter>
+    </>
   );
 }
 

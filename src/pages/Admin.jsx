@@ -1,17 +1,22 @@
 import { useState, useEffect } from "react";
 import ProductForm from "../components/ProductForm";
 import { db } from "../firebase";
-import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
+import { collection, getDocs, deleteDoc, doc, addDoc } from "firebase/firestore";
 
 function Admin() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [login, setLogin] = useState(false);
-  const [activeTab, setActiveTab] = useState("products"); // 'products' or 'orders'
+  const [activeTab, setActiveTab] = useState("products"); // 'products', 'orders', or 'categories'
 
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // New Category Form States
+  const [catName, setCatName] = useState("");
+  const [catImage, setCatImage] = useState("");
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -22,7 +27,7 @@ function Admin() {
     }
   };
 
-  // Fetch Products & Orders from Firebase
+  // Fetch Products, Orders & Categories from Firebase
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -35,6 +40,11 @@ function Admin() {
       const orderSnap = await getDocs(collection(db, "orders"));
       const orderList = orderSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
       setOrders(orderList);
+
+      // Fetch Categories
+      const catSnap = await getDocs(collection(db, "categories"));
+      const catList = catSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      setCategories(catList);
     } catch (error) {
       console.error("Error fetching admin data:", error);
     } finally {
@@ -58,6 +68,43 @@ function Admin() {
       } catch (error) {
         console.error("Error deleting product:", error);
         alert("Product delete karne mein masla aaya.");
+      }
+    }
+  };
+
+  // Add Category Handler
+  const handleAddCategory = async (e) => {
+    e.preventDefault();
+    if (!catName || !catImage) {
+      alert("Please fill in both category name and image URL.");
+      return;
+    }
+
+    try {
+      const docRef = await addDoc(collection(db, "categories"), {
+        name: catName.toUpperCase(),
+        image: catImage,
+      });
+      setCategories([...categories, { id: docRef.id, name: catName.toUpperCase(), image: catImage }]);
+      setCatName("");
+      setCatImage("");
+      alert("Category added successfully!");
+    } catch (error) {
+      console.error("Error adding category:", error);
+      alert("Category add karne mein masla aaya.");
+    }
+  };
+
+  // Delete Category
+  const handleDeleteCategory = async (id) => {
+    if (window.confirm("Kya aap is category ko delete karna chahte hain?")) {
+      try {
+        await deleteDoc(doc(db, "categories", id));
+        setCategories(categories.filter((item) => item.id !== id));
+        alert("Category deleted successfully!");
+      } catch (error) {
+        console.error("Error deleting category:", error);
+        alert("Category delete karne mein masla aaya.");
       }
     }
   };
@@ -114,7 +161,7 @@ function Admin() {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex gap-4 mb-8">
+        <div className="flex gap-4 mb-8 flex-wrap">
           <button
             onClick={() => setActiveTab("products")}
             className={`px-8 py-3 rounded-full font-semibold transition cursor-pointer ${
@@ -124,6 +171,16 @@ function Admin() {
             }`}
           >
             Products ({products.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("categories")}
+            className={`px-8 py-3 rounded-full font-semibold transition cursor-pointer ${
+              activeTab === "categories"
+                ? "bg-black text-white"
+                : "bg-white text-black border"
+            }`}
+          >
+            Categories ({categories.length})
           </button>
           <button
             onClick={() => setActiveTab("orders")}
@@ -173,6 +230,79 @@ function Admin() {
                         className="mt-4 bg-red-100 text-red-600 hover:bg-red-600 hover:text-white py-2 rounded-xl transition cursor-pointer font-medium"
                       >
                         Delete Product
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Categories Tab */}
+        {activeTab === "categories" && (
+          <div className="space-y-12">
+            {/* Add Category Form */}
+            <div className="bg-white p-8 rounded-3xl shadow-xl">
+              <h2 className="text-2xl font-bold mb-6">Add New Category</h2>
+              <form onSubmit={handleAddCategory} className="space-y-4 max-w-xl">
+                <div>
+                  <label className="block text-sm font-semibold mb-1">Category Name</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. MALA, BANGLES"
+                    value={catName}
+                    onChange={(e) => setCatName(e.target.value)}
+                    className="w-full border px-4 py-2 rounded-xl outline-none focus:border-black"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-1">Image URL</label>
+                  <input
+                    type="text"
+                    placeholder="Paste image link here"
+                    value={catImage}
+                    onChange={(e) => setCatImage(e.target.value)}
+                    className="w-full border px-4 py-2 rounded-xl outline-none focus:border-black"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="bg-black text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-gray-800 transition cursor-pointer"
+                >
+                  Add Category
+                </button>
+              </form>
+            </div>
+
+            {/* Manage Categories */}
+            <div className="bg-white p-8 rounded-3xl shadow-xl">
+              <h2 className="text-2xl font-bold mb-6">Manage Categories</h2>
+
+              {loading ? (
+                <p>Loading categories...</p>
+              ) : categories.length === 0 ? (
+                <p className="text-gray-500">No categories added yet.</p>
+              ) : (
+                <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-6">
+                  {categories.map((c) => (
+                    <div
+                      key={c.id}
+                      className="border rounded-2xl p-4 flex flex-col items-center text-center justify-between"
+                    >
+                      <div>
+                        <img
+                          src={c.image}
+                          alt={c.name}
+                          className="w-24 h-24 object-cover rounded-full mx-auto mb-3 border shadow-sm"
+                        />
+                        <h3 className="font-bold text-sm">{c.name}</h3>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteCategory(c.id)}
+                        className="mt-4 w-full bg-red-100 text-red-600 hover:bg-red-600 hover:text-white py-1.5 rounded-xl transition cursor-pointer text-xs font-medium"
+                      >
+                        Delete
                       </button>
                     </div>
                   ))}

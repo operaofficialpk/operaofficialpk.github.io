@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://irtazahusnain.github.io/operaofficialpk",
+  "homepage": "https://operaofficialpk.github.io",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -13,6 +13,9 @@
     "deploy": "gh-pages -d dist"
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "firebase": "^12.17.1",
+    "framer-motion": "^13.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.22.0"
@@ -28,7 +31,7 @@
     "eslint-plugin-react-refresh": "^0.4.7",
     "gh-pages": "^6.3.0",
     "postcss": "^8.4.38",
-    "tailwindcss": "^3.4.4",
+    "tailwindcss": "^4.3.3",
     "vite": "^5.3.1"
   }
 }

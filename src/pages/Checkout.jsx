@@ -1,8 +1,6 @@
 import { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CartContext } from "../context/CartContext";
-import { db } from "../firebase";
-import { collection, addDoc } from "firebase/firestore";
 
 function Checkout() {
   const { cart, totalPrice, clearCart } = useContext(CartContext);
@@ -23,7 +21,7 @@ function Checkout() {
     });
   };
 
-  const handlePlaceOrder = async (e) => {
+  const handlePlaceOrder = (e) => {
     e.preventDefault();
 
     if (cart.length === 0) {
@@ -38,46 +36,30 @@ function Checkout() {
 
     setLoading(true);
 
-    const orderPayload = {
-      customer,
-      items: cart,
-      totalAmount: totalPrice,
-      status: "Pending",
-      createdAt: new Date(),
-    };
+    // WhatsApp message tayar karein
+    const orderMessage = `*NEW ORDER - OPERA OFFICIAL PK*\n\n` +
+      `*Customer Details:*\n` +
+      `Name: ${customer.name}\n` +
+      `Phone: ${customer.phone}\n` +
+      `Address: ${customer.address}\n` +
+      `City: ${customer.city}\n\n` +
+      `*Items:*\n` +
+      cart.map((item) => `- ${item.name} x${item.quantity} (Rs. ${item.price * item.quantity})`).join("\n") +
+      `\n\n*Total Amount:* Rs. ${totalPrice}`;
 
-    try {
-      // 1. Firebase Firestore mein order save karein
-      await addDoc(collection(db, "orders"), orderPayload);
+    // Cart clear karein
+    clearCart();
 
-      // 2. WhatsApp message tayar karein
-      const orderMessage = `*NEW ORDER - OPERA OFFICIAL PK*\n\n` +
-        `*Customer Details:*\n` +
-        `Name: ${customer.name}\n` +
-        `Phone: ${customer.phone}\n` +
-        `Address: ${customer.address}\n` +
-        `City: ${customer.city}\n\n` +
-        `*Items:*\n` +
-        cart.map((item) => `- ${item.name} x${item.quantity} (Rs. ${item.price * item.quantity})`).join("\n") +
-        `\n\n*Total Amount:* Rs. ${totalPrice}`;
+    // WhatsApp open karein
+    window.open(
+      `https://wa.me/923173355420?text=${encodeURIComponent(orderMessage)}`,
+      "_blank"
+    );
 
-      // 3. Cart clear karein
-      clearCart();
+    setLoading(false);
 
-      // 4. WhatsApp open karein
-      window.open(
-        `https://wa.me/923173355420?text=${encodeURIComponent(orderMessage)}`,
-        "_blank"
-      );
-
-      // 5. Success page par bhej dein
-      navigate("/success");
-    } catch (error) {
-      console.error("Error saving order:", error);
-      alert("Order save karne mein masla aaya hai. Dobara koshish karein.");
-    } finally {
-      setLoading(false);
-    }
+    // Success page par bhej dein
+    navigate("/success");
   };
 
   if (cart.length === 0) {

@@ -7,7 +7,7 @@ function Footer() {
 
   return (
     <footer className="bg-black text-white py-16 px-6 border-t border-gray-900">
-      <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-10 items-start">
+      <div className="max-w-6xl mx-auto grid md:grid-cols-4 gap-10 items-start">
         {/* Brand & Logo */}
         <div>
           <Link to="/" className="inline-block">
@@ -15,11 +15,6 @@ function Footer() {
               src={logo}
               alt="OPERA OFFICIAL PK"
               className="h-16 md:h-20 w-auto object-contain bg-white p-2 rounded-lg"
-              /* 
-                Note: Agar aap ke logo ka background white hai, toh 'bg-white p-2 rounded-lg' 
-                use black footer par clean aur visible banata hai.
-                Agar logo transparent PNG hai, toh aap 'bg-white p-2 rounded-lg' hata sakte hain.
-              */
             />
           </Link>
           <p className="text-gray-400 mt-5 leading-7 text-sm max-w-sm">
@@ -50,6 +45,40 @@ function Footer() {
               className="hover:text-white transition"
             >
               Contact Us
+            </a>
+          </div>
+        </div>
+
+        {/* Social Media Links */}
+        <div>
+          <h3 className="text-xl font-bold mb-5 tracking-wide">
+            Follow Us
+          </h3>
+
+          <div className="flex flex-col gap-3 text-gray-400 text-sm">
+            <a
+              href="https://www.instagram.com/operaofficialpk"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-white transition flex items-center gap-2"
+            >
+              📷 Instagram (@operaofficialpk)
+            </a>
+            <a
+              href="https://www.tiktok.com/@operaofficialpk"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-white transition flex items-center gap-2"
+            >
+              🎵 TikTok (@operaofficialpk)
+            </a>
+            <a
+              href="https://www.facebook.com/operaofficialpk"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-white transition flex items-center gap-2"
+            >
+              👥 Facebook (operaofficialpk)
             </a>
           </div>
         </div>

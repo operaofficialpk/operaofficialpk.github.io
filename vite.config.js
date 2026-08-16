@@ -7,5 +7,5 @@ export default defineConfig({
     react(),
     tailwindcss()
   ],
-  base: '/',
+  base: './', // Ensure it is exactly './'
 })

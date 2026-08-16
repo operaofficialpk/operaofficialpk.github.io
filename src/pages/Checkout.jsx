@@ -1,150 +1,151 @@
-import { useContext, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { CartContext } from "../context/CartContext";
+import React, { useState } from "react";
+import { db } from "../firebase";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
-function Checkout() {
-  const { cart, totalPrice, clearCart } = useContext(CartContext);
-  const navigate = useNavigate();
+function Checkout({ cart, totalPrice, onOrderSuccess }) {
+  const [email, setEmail] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [address, setAddress] = useState("");
+  const [province, setProvince] = useState("Punjab");
+  const [city, setCity] = useState("Faisalabad");
+  const [phone, setPhone] = useState("");
+  const [orderNote, setOrderNote] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const [customer, setCustomer] = useState({
-    name: "",
-    phone: "",
-    address: "",
-    city: "",
-  });
-
-  const handleChange = (e) => {
-    setCustomer({
-      ...customer,
-      [e.target.name]: e.target.value,
-    });
-  };
-
-  const handlePlaceOrder = (e) => {
+  const handleCheckout = async (e) => {
     e.preventDefault();
-
-    if (cart.length === 0) {
-      alert("Aapka cart khali hai!");
-      return;
-    }
-
-    if (!customer.name || !customer.phone || !customer.address || !customer.city) {
-      alert("Barah-e-karam tamam fields pur karein.");
+    if (!firstName || !phone || !address || cart.length === 0) {
+      alert("براہ کرم تمام لازمی خانے پر کریں!");
       return;
     }
 
     setLoading(true);
-
-    // WhatsApp message tayar karein
-    const orderMessage = `*NEW ORDER - OPERA OFFICIAL PK*\n\n` +
-      `*Customer Details:*\n` +
-      `Name: ${customer.name}\n` +
-      `Phone: ${customer.phone}\n` +
-      `Address: ${customer.address}\n` +
-      `City: ${customer.city}\n\n` +
-      `*Items:*\n` +
-      cart.map((item) => `- ${item.name} x${item.quantity} (Rs. ${item.price * item.quantity})`).join("\n") +
-      `\n\n*Total Amount:* Rs. ${totalPrice}`;
-
-    // Cart clear karein
-    clearCart();
-
-    // WhatsApp open karein
-    window.open(
-      `https://wa.me/923173355420?text=${encodeURIComponent(orderMessage)}`,
-      "_blank"
-    );
-
-    setLoading(false);
-
-    // Success page par bhej dein
-    navigate("/success");
+    try {
+      await addDoc(collection(db, "orders"), {
+        customerName: `${firstName} ${lastName}`.trim(),
+        email,
+        phone,
+        address,
+        province,
+        city,
+        items: cart,
+        total: totalPrice,
+        orderNote: orderNote || "",
+        status: "Pending",
+        isDeleted: false,
+        createdAt: serverTimestamp(),
+      });
+      alert("آرڈر کامیابی سے پلیس ہو گیا!");
+      if (onOrderSuccess) onOrderSuccess();
+    } catch (error) {
+      console.error("Order error:", error);
+      alert("آرڈر پلیس کرنے میں مسئلہ پیش آیا۔");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  if (cart.length === 0) {
-    return (
-      <section className="min-h-screen bg-gray-50 py-16 px-6 text-center">
-        <div className="max-w-xl mx-auto bg-white rounded-3xl shadow-xl p-10">
-          <h1 className="text-3xl font-bold mb-4">Your Cart is Empty</h1>
-          <p className="text-gray-500 mb-6">Order place karne ke liye pehle cart mein products add karein.</p>
-          <button
-            onClick={() => navigate("/shop")}
-            className="bg-black text-white px-8 py-3 rounded-full font-semibold"
-          >
-            Go to Shop
-          </button>
-        </div>
-      </section>
-    );
-  }
-
   return (
-    <section className="min-h-screen bg-gray-50 py-16 px-6">
-      <div className="max-w-xl mx-auto bg-white rounded-3xl shadow-xl p-10">
-        <h1 className="text-4xl font-bold text-center mb-10">Checkout</h1>
-
-        <form onSubmit={handlePlaceOrder} className="space-y-4">
-          <input
-            type="text"
-            name="name"
-            placeholder="Full Name"
-            value={customer.name}
-            onChange={handleChange}
-            required
-            className="w-full border p-4 rounded-xl outline-none focus:border-black"
-          />
-
-          <input
-            type="tel"
-            name="phone"
-            placeholder="Phone Number"
-            value={customer.phone}
-            onChange={handleChange}
-            required
-            className="w-full border p-4 rounded-xl outline-none focus:border-black"
-          />
-
-          <input
-            type="text"
-            name="address"
-            placeholder="Complete Address"
-            value={customer.address}
-            onChange={handleChange}
-            required
-            className="w-full border p-4 rounded-xl outline-none focus:border-black"
-          />
-
-          <input
-            type="text"
-            name="city"
-            placeholder="City"
-            value={customer.city}
-            onChange={handleChange}
-            required
-            className="w-full border p-4 rounded-xl outline-none focus:border-black"
-          />
-
-          <div className="border-t border-b py-4 my-6">
-            <h2 className="text-xl font-bold mb-2">Order Summary</h2>
-            <div className="flex justify-between text-lg font-semibold">
-              <span>Total Amount:</span>
-              <span>Rs. {totalPrice}</span>
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className={`w-full text-center bg-green-600 hover:bg-green-700 text-white py-4 rounded-full font-bold text-lg transition cursor-pointer ${
-              loading ? "opacity-50 cursor-not-allowed" : ""
-            }`}
-          >
-            {loading ? "Processing Order..." : "Place Order On WhatsApp"}
-          </button>
-        </form>
+    <form onSubmit={handleCheckout} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 max-w-lg mx-auto space-y-4">
+      <h3 className="text-lg font-bold text-gray-900">CHECKOUT DETAILS</h3>
+      
+      <div>
+        <input 
+          type="email" 
+          value={email} 
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Email address"
+          className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs outline-none focus:border-black transition"
+        />
       </div>
-    </section>
+
+      <div className="grid grid-cols-2 gap-2">
+        <input 
+          type="text" 
+          value={firstName} 
+          onChange={(e) => setFirstName(e.target.value)}
+          placeholder="First Name" required
+          className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs outline-none focus:border-black transition"
+        />
+        <input 
+          type="text" 
+          value={lastName} 
+          onChange={(e) => setLastName(e.target.value)}
+          placeholder="Last Name"
+          className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs outline-none focus:border-black transition"
+        />
+      </div>
+
+      <div>
+        <input 
+          type="text" 
+          value={address} 
+          onChange={(e) => setAddress(e.target.value)}
+          placeholder="Address (House No, Street, Area)" required
+          className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs outline-none focus:border-black transition"
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <select 
+          value={province} 
+          onChange={(e) => setProvince(e.target.value)}
+          className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs outline-none focus:border-black transition cursor-pointer bg-white"
+        >
+          <option value="Punjab">Punjab</option>
+          <option value="Sindh">Sindh</option>
+          <option value="KPK">KPK</option>
+          <option value="Balochistan">Balochistan</option>
+        </select>
+
+        <select 
+          value={city} 
+          onChange={(e) => setCity(e.target.value)}
+          className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs outline-none focus:border-black transition cursor-pointer bg-white"
+        >
+          <option value="Faisalabad">Faisalabad</option>
+          <option value="Lahore">Lahore</option>
+          <option value="Karachi">Karachi</option>
+          <option value="Islamabad">Islamabad</option>
+          <option value="Rawalpindi">Rawalpindi</option>
+        </select>
+      </div>
+
+      <div>
+        <input 
+          type="text" 
+          value={phone} 
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder="Phone Number (03XXXXXXXXX)" required
+          className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs outline-none focus:border-black transition"
+        />
+      </div>
+
+      {/* Order Note Field Added Here */}
+      <div>
+        <textarea
+          value={orderNote}
+          onChange={(e) => setOrderNote(e.target.value)}
+          placeholder="Order Note / Special Instructions (Optional)"
+          className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs outline-none focus:border-black transition resize-none"
+          rows="2"
+        />
+      </div>
+
+      <div className="pt-2 border-t border-gray-100 flex justify-between items-center">
+        <span className="text-xs font-bold text-gray-700">Total:</span>
+        <span className="text-sm font-black text-gray-900">Rs. {totalPrice.toLocaleString()}</span>
+      </div>
+
+      <button 
+        type="submit" 
+        disabled={loading}
+        className="w-full py-3.5 bg-black text-white rounded-xl text-xs font-bold hover:bg-gray-800 transition cursor-pointer"
+      >
+        {loading ? "Placing Order..." : "Complete Order"}
+      </button>
+    </form>
   );
 }
 

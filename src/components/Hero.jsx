@@ -1,121 +1,265 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useState } from "react";
 
-// Standard Unsplash Jewellery Images (Aap apni images ka path/URL yahan daal sakte hain)
-const slides = [
-  {
-    id: 1,
-    title: "Luxury Jewellery Collection",
-    subtitle: "Discover premium jewellery collections crafted with elegance and timeless beauty.",
-    image: "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=1000&auto=format&fit=crop",
-    link: "/shop"
-  },
-  {
-    id: 2,
-    title: "Exclusive Bridal Sets",
-    subtitle: "Handcrafted designs designed for your special moments and weddings.",
-    image: "https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?q=80&w=1000&auto=format&fit=crop",
-    link: "/shop"
-  },
-  {
-    id: 3,
-    title: "Royal Emerald & Diamonds",
-    subtitle: "Exquisite craftsmanship tailored for sophisticated modern fashion.",
-    image: "https://images.unsplash.com/photo-1605100804763-247f67b3557e?q=80&w=1000&auto=format&fit=crop",
-    link: "/shop"
-  }
-];
+import banner1 from "../assets/banner1.jpg";
+import banner2 from "../assets/banner2.jpg";
+import banner3 from "../assets/banner3.jpg";
 
 function Hero() {
-  const [current, setCurrent] = useState(0);
+  const banners = [banner1, banner2, banner3].filter(Boolean);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
-  // Auto-play slider (Har 4 seconds baad slide change hoga)
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrent((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
+    if (banners.length === 0) return;
+
+    const interval = setInterval(() => {
+      setCurrentIndex((prevIndex) => (prevIndex + 1) % banners.length);
     }, 4000);
 
-    return () => clearInterval(timer);
-  }, []);
+    return () => clearInterval(interval);
+  }, [banners.length]);
 
-  const prevSlide = () => {
-    setCurrent(current === 0 ? slides.length - 1 : current - 1);
+  const goToPrevious = () => {
+    if (banners.length === 0) return;
+    setCurrentIndex((prevIndex) => (prevIndex - 1 + banners.length) % banners.length);
   };
 
-  const nextSlide = () => {
-    setCurrent(current === slides.length - 1 ? 0 : current + 1);
+  const goToNext = () => {
+    if (banners.length === 0) return;
+    setCurrentIndex((prevIndex) => (prevIndex + 1) % banners.length);
   };
+
+  if (banners.length === 0) {
+    return <div className="w-full h-48 bg-black text-white flex items-center justify-center">Banners not found</div>;
+  }
 
   return (
-    <section className="bg-black text-white py-12 md:py-20 px-6 overflow-hidden">
-      <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-10 items-center">
-        
-        {/* Left Side: Content */}
-        <div className="space-y-6">
-          <span className="text-xs tracking-widest text-gray-400 uppercase font-medium">
-            OPERA OFFICIAL PK
-          </span>
-
-          <h1 className="text-4xl md:text-6xl font-bold leading-tight transition-all duration-500">
-            {slides[current].title}
-          </h1>
-
-          <p className="text-gray-400 text-sm md:text-base max-w-lg leading-relaxed transition-all duration-500">
-            {slides[current].subtitle}
-          </p>
-
-          <div>
-            <Link
-              to={slides[current].link}
-              className="inline-block bg-white text-black px-8 py-3.5 rounded-full font-medium hover:bg-gray-200 transition-all duration-300"
-            >
-              Explore Collection
-            </Link>
-          </div>
-        </div>
-
-        {/* Right Side: Image Slider with Controls */}
-        <div className="relative group">
-          <div className="relative h-[350px] md:h-[450px] w-full rounded-3xl overflow-hidden shadow-2xl">
+    <section className="w-full bg-white">
+      <div
+        className="
+          relative
+          w-full
+          overflow-hidden
+          bg-neutral-900
+          aspect-[16/9]
+          sm:aspect-[21/9]
+          lg:aspect-[2.8/1]
+        "
+      >
+        {banners.map((banner, index) => (
+          <div
+            key={index}
+            className={`
+              absolute
+              inset-0
+              transition-opacity
+              duration-1000
+              ease-in-out
+              ${index === currentIndex ? "opacity-100 z-10" : "opacity-0 z-0"}
+            `}
+          >
             <img
-              src={slides[current].image}
-              alt={slides[current].title}
-              className="w-full h-full object-cover transition-all duration-700 ease-in-out"
+              src={banner}
+              alt={`Opera Jewellery Banner ${index + 1}`}
+              className="w-full h-full object-cover object-center"
+            />
+
+            {/* Subtle Gradient Overlay for Mobile Readability */}
+            <div
+              className="
+                absolute
+                inset-0
+                md:hidden
+                bg-gradient-to-t
+                from-black/60
+                via-black/20
+                to-transparent
+              "
             />
           </div>
+        ))}
 
-          {/* Navigation Arrows */}
-          <button
-            onClick={prevSlide}
-            aria-label="Previous Slide"
-            className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/80 text-white w-10 h-10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer"
+        {/* Mobile Banner Text & CTA */}
+        <div
+          className="
+            absolute
+            md:hidden
+            left-0
+            right-0
+            bottom-12
+            z-20
+            flex
+            flex-col
+            items-center
+            justify-center
+            px-5
+            text-center
+          "
+        >
+          <p
+            className="
+              text-[9px]
+              uppercase
+              tracking-[0.3em]
+              font-semibold
+              text-[#F0D99A]
+              mb-1
+            "
           >
-            ❮
-          </button>
-          
-          <button
-            onClick={nextSlide}
-            aria-label="Next Slide"
-            className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/80 text-white w-10 h-10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer"
-          >
-            ❯
-          </button>
+            Opera Jewellery
+          </p>
 
-          {/* Slide Indicator Dots */}
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-            {slides.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setCurrent(index)}
-                aria-label={`Go to slide ${index + 1}`}
-                className={`w-2.5 h-2.5 rounded-full transition-all duration-300 cursor-pointer ${
-                  current === index ? "bg-white w-6" : "bg-white/40"
-                }`}
-              />
-            ))}
-          </div>
+          <h2
+            className="
+              text-xl
+              sm:text-2xl
+              font-serif
+              font-bold
+              text-white
+              tracking-wide
+            "
+          >
+            Elegance You Deserve
+          </h2>
+
+          <a
+            href="/shop"
+            className="
+              mt-3
+              px-5
+              py-2
+              rounded-full
+              bg-[#C5A059]
+              text-white
+              text-[10px]
+              font-bold
+              uppercase
+              tracking-[0.15em]
+              shadow-lg
+              hover:bg-[#E6CA65]
+              transition
+            "
+          >
+            Shop Now
+          </a>
         </div>
 
+        {/* Previous Button */}
+        <button
+          type="button"
+          onClick={goToPrevious}
+          aria-label="Previous banner"
+          className="
+            absolute
+            left-3
+            sm:left-5
+            top-1/2
+            -translate-y-1/2
+            z-30
+            w-9
+            h-9
+            sm:w-11
+            sm:h-11
+            rounded-full
+            bg-black/30
+            hover:bg-black/60
+            border
+            border-white/30
+            text-white
+            backdrop-blur-sm
+            flex
+            items-center
+            justify-center
+            transition
+            cursor-pointer
+          "
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="w-4 h-4 sm:w-5 sm:h-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+
+        {/* Next Button */}
+        <button
+          type="button"
+          onClick={goToNext}
+          aria-label="Next banner"
+          className="
+            absolute
+            right-3
+            sm:right-5
+            top-1/2
+            -translate-y-1/2
+            z-30
+            w-9
+            h-9
+            sm:w-11
+            sm:h-11
+            rounded-full
+            bg-black/30
+            hover:bg-black/60
+            border
+            border-white/30
+            text-white
+            backdrop-blur-sm
+            flex
+            items-center
+            justify-center
+            transition
+            cursor-pointer
+          "
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="w-4 h-4 sm:w-5 sm:h-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+
+        {/* Carousel Indicators / Dots */}
+        <div
+          className="
+            absolute
+            bottom-4
+            left-1/2
+            -translate-x-1/2
+            z-30
+            flex
+            items-center
+            gap-2
+          "
+        >
+          {banners.map((_, index) => (
+            <button
+              key={index}
+              type="button"
+              onClick={() => setCurrentIndex(index)}
+              aria-label={`Go to banner ${index + 1}`}
+              className={`
+                rounded-full
+                transition-all
+                duration-300
+                cursor-pointer
+                ${
+                  index === currentIndex
+                    ? "w-6 h-1.5 bg-[#C5A059]"
+                    : "w-1.5 h-1.5 bg-white/70 hover:bg-white"
+                }
+              `}
+            />
+          ))}
+        </div>
       </div>
     </section>
   );

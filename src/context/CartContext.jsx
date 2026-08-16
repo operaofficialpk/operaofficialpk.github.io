@@ -1,20 +1,52 @@
-import { createContext, useState } from "react";
+import { createContext, useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 
 export const CartContext = createContext();
 
-function CartProvider({ children }) {
+export function CartProvider({ children }) {
+  // ============================================================
+  // ROUTE CHANGE LISTENER (Auto-close drawer on navigation)
+  // ============================================================
+  const location = useLocation();
+
+  useEffect(() => {
+    setIsCartOpen(false);
+  }, [location]);
+
+  // ============================================================
+  // CART STATE
+  // ============================================================
+
   const [cart, setCart] = useState(() => {
     try {
       const savedCart = localStorage.getItem("cart");
-      return savedCart ? JSON.parse(savedCart) : [];
+
+      if (!savedCart) {
+        return [];
+      }
+
+      const parsedCart = JSON.parse(savedCart);
+
+      return Array.isArray(parsedCart) ? parsedCart : [];
     } catch (error) {
       console.error("Error reading cart from localStorage:", error);
       return [];
     }
   });
 
+  // ============================================================
+  // CART DRAWER STATE
+  // ============================================================
+
+  const [isCartOpen, setIsCartOpen] = useState(false);
+
+  // ============================================================
+  // SAVE CART
+  // ============================================================
+
   const saveCart = (newCart) => {
     setCart(newCart);
+
     try {
       localStorage.setItem("cart", JSON.stringify(newCart));
     } catch (error) {
@@ -22,78 +54,282 @@ function CartProvider({ children }) {
     }
   };
 
+  // ============================================================
+  // OPEN CART DRAWER
+  // ============================================================
+
+  const openCart = () => {
+    setIsCartOpen(true);
+  };
+
+  // ============================================================
+  // CLOSE CART DRAWER
+  // ============================================================
+
+  const closeCart = () => {
+    setIsCartOpen(false);
+  };
+
+  // ============================================================
+  // ADD TO CART
+  // ============================================================
+
   const addToCart = (product, qtyToAdd = 1) => {
-    const existing = cart.find((item) => item.id === product.id);
+    if (!product) return;
+
+    const selectedColor = product.selectedColor || "Default";
+
+    const quantityToAdd =
+      Number(qtyToAdd) > 0 ? Number(qtyToAdd) : 1;
+
+    const existing = cart.find(
+      (item) =>
+        String(item.id) === String(product.id) &&
+        (item.selectedColor || "Default") === selectedColor
+    );
+
+    const basePrice =
+      Number(product.price) ||
+      Number(product.discountPrice) ||
+      Number(product.finalPrice) ||
+      Number(product.originalPrice) ||
+      0;
 
     let updatedCart;
 
     if (existing) {
-      updatedCart = cart.map((item) =>
-        item.id === product.id
-          ? {
-              ...item,
-              quantity: (item.quantity || 1) + qtyToAdd,
-            }
-          : item
-      );
+      updatedCart = cart.map((item) => {
+        const sameProduct =
+          String(item.id) === String(product.id);
+
+        const sameColor =
+          (item.selectedColor || "Default") === selectedColor;
+
+        if (sameProduct && sameColor) {
+          return {
+            ...item,
+            price: basePrice,
+            quantity:
+              Number(item.quantity || 1) + quantityToAdd,
+            selectedColor,
+          };
+        }
+
+        return item;
+      });
     } else {
       updatedCart = [
         ...cart,
         {
           ...product,
-          quantity: qtyToAdd,
+          price: basePrice,
+          quantity: quantityToAdd,
+          selectedColor,
         },
       ];
     }
 
     saveCart(updatedCart);
+
+    // Product add hone ke baad drawer automatically open
+    setIsCartOpen(true);
   };
 
-  const increaseQuantity = (id) => {
-    const updatedCart = cart.map((item) =>
-      item.id === id
-        ? {
-            ...item,
-            quantity: (item.quantity || 1) + 1,
-          }
-        : item
-    );
+  // ============================================================
+  // INCREASE QUANTITY
+  // ============================================================
+
+  const increaseQuantity = (
+    id,
+    selectedColor = "Default"
+  ) => {
+    const updatedCart = cart.map((item) => {
+      const sameProduct =
+        String(item.id) === String(id);
+
+      const sameColor =
+        (item.selectedColor || "Default") === selectedColor;
+
+      if (sameProduct && sameColor) {
+        return {
+          ...item,
+          quantity: Number(item.quantity || 1) + 1,
+        };
+      }
+
+      return item;
+    });
+
     saveCart(updatedCart);
   };
 
-  const decreaseQuantity = (id) => {
-    const updatedCart = cart.map((item) =>
-      item.id === id && item.quantity > 1
-        ? {
-            ...item,
-            quantity: item.quantity - 1,
-          }
-        : item
-    );
+  // ============================================================
+  // DECREASE QUANTITY
+  // ============================================================
+
+  const decreaseQuantity = (
+    id,
+    selectedColor = "Default"
+  ) => {
+    const updatedCart = cart.map((item) => {
+      const sameProduct =
+        String(item.id) === String(id);
+
+      const sameColor =
+        (item.selectedColor || "Default") === selectedColor;
+
+      if (sameProduct && sameColor) {
+        const currentQuantity =
+          Number(item.quantity || 1);
+
+        return {
+          ...item,
+          quantity:
+            currentQuantity > 1
+              ? currentQuantity - 1
+              : 1,
+        };
+      }
+
+      return item;
+    });
+
     saveCart(updatedCart);
   };
 
-  const removeFromCart = (id) => {
-    const updatedCart = cart.filter((item) => item.id !== id);
+  // ============================================================
+  // UPDATE QUANTITY
+  // ============================================================
+
+  const updateQuantity = (
+    id,
+    newQty,
+    selectedColor = "Default"
+  ) => {
+    const quantity = Number(newQty);
+
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      removeFromCart(id, selectedColor);
+      return;
+    }
+
+    const updatedCart = cart.map((item) => {
+      const sameProduct =
+        String(item.id) === String(id);
+
+      const sameColor =
+        (item.selectedColor || "Default") === selectedColor;
+
+      if (sameProduct && sameColor) {
+        return {
+          ...item,
+          quantity: Math.floor(quantity),
+        };
+      }
+
+      return item;
+    });
+
     saveCart(updatedCart);
   };
 
-  // Order complete hone par ya empty cart ke liye
+  // ============================================================
+  // REMOVE FROM CART
+  // ============================================================
+
+  const removeFromCart = (
+    id,
+    selectedColor = null
+  ) => {
+    const updatedCart = cart.filter((item) => {
+      const sameProduct =
+        String(item.id) === String(id);
+
+      if (!sameProduct) {
+        return true;
+      }
+
+      if (selectedColor !== null) {
+        const itemColor =
+          item.selectedColor || "Default";
+
+        return itemColor !== selectedColor;
+      }
+
+      return false;
+    });
+
+    saveCart(updatedCart);
+  };
+
+  // ============================================================
+  // CLEAR ENTIRE CART
+  // ============================================================
+
   const clearCart = () => {
     saveCart([]);
   };
 
-  // Total Item count for Navbar badge
+  // ============================================================
+  // TOTAL ITEMS
+  // ============================================================
+
   const totalItems = cart.reduce(
-    (sum, item) => sum + (item.quantity || 1),
+    (sum, item) => {
+      return sum + Number(item.quantity || 1);
+    },
     0
   );
 
-  // Total price calculation
+  // ============================================================
+  // TOTAL PRICE
+  // ============================================================
+
   const totalPrice = cart.reduce(
-    (sum, item) => sum + Number(item.price || 0) * (item.quantity || 1),
+    (sum, item) => {
+      const price = Number(item.price) || 0;
+      const quantity = Number(item.quantity) || 1;
+
+      return sum + price * quantity;
+    },
     0
   );
+
+  // ============================================================
+  // ESC KEY + BODY SCROLL LOCK
+  // ============================================================
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setIsCartOpen(false);
+      }
+    };
+
+    if (isCartOpen) {
+      document.addEventListener(
+        "keydown",
+        handleKeyDown
+      );
+
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+
+    return () => {
+      document.removeEventListener(
+        "keydown",
+        handleKeyDown
+      );
+
+      document.body.style.overflow = "";
+    };
+  }, [isCartOpen]);
+
+  // ============================================================
+  // CONTEXT
+  // ============================================================
 
   return (
     <CartContext.Provider
@@ -103,14 +339,16 @@ function CartProvider({ children }) {
         removeFromCart,
         increaseQuantity,
         decreaseQuantity,
+        updateQuantity,
         clearCart,
         totalItems,
         totalPrice,
+        isCartOpen,
+        openCart,
+        closeCart,
       }}
     >
       {children}
     </CartContext.Provider>
   );
 }
-
-export default CartProvider;

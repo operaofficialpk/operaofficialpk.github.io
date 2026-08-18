@@ -67,15 +67,11 @@ const FALLBACK_IMAGE =
 const formatPrice = (value) => {
   const num = Number(value);
 
-  return isNaN(num)
-    ? "0"
-    : num.toLocaleString();
+  return isNaN(num) ? "0" : num.toLocaleString();
 };
 
 const getVariantColorStyle = (colorName) => {
-  const color = String(
-    colorName || ""
-  )
+  const color = String(colorName || "")
     .toLowerCase()
     .trim();
 
@@ -216,6 +212,9 @@ function Product() {
     useState(1);
 
   const [isZoomOpen, setIsZoomOpen] =
+    useState(false);
+
+  const [isDescriptionOpen, setIsDescriptionOpen] =
     useState(false);
 
   const [reviews, setReviews] =
@@ -435,21 +434,20 @@ function Product() {
               }
             );
 
-            // Newest first
             fetchedReviews.sort(
               (a, b) => {
                 const dateA =
                   a.createdAt?.seconds
-                    ? a.createdAt
-                        .seconds * 1000
+                    ? a.createdAt.seconds *
+                      1000
                     : new Date(
                         a.date || 0
                       ).getTime();
 
                 const dateB =
                   b.createdAt?.seconds
-                    ? b.createdAt
-                        .seconds * 1000
+                    ? b.createdAt.seconds *
+                      1000
                     : new Date(
                         b.date || 0
                       ).getTime();
@@ -696,6 +694,200 @@ function Product() {
       : 0;
 
   // -----------------------------
+  // SEO DATA
+  // -----------------------------
+
+  const seoDescription = useMemo(() => {
+    if (!product) {
+      return "";
+    }
+
+    const rawDescription =
+      product.description ||
+      product.details ||
+      `Shop ${product.name || product.title || "premium jewellery"} from Opera Jewellery.`;
+
+    return String(rawDescription)
+      .replace(/<[^>]*>?/gm, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 160);
+  }, [product]);
+
+  const seoLongDescription = useMemo(() => {
+    if (!product) {
+      return "";
+    }
+
+    const rawDescription =
+      product.description ||
+      product.details ||
+      `Explore ${product.name || product.title || "this jewellery piece"} from Opera Jewellery.`;
+
+    return String(rawDescription)
+      .replace(/<[^>]*>?/gm, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 300);
+  }, [product]);
+
+  const seoProductName =
+    product?.name ||
+    product?.title ||
+    "Luxury Jewellery";
+
+  const canonicalUrl = useMemo(() => {
+    if (
+      typeof window ===
+      "undefined"
+    ) {
+      return "";
+    }
+
+    return `${window.location.origin}${window.location.pathname}`;
+  }, [id]);
+
+  const seoProductImage =
+    allImages.length > 0
+      ? allImages[0]
+      : FALLBACK_IMAGE;
+
+  const schemaImages =
+    allImages.length > 0
+      ? allImages
+      : [seoProductImage];
+
+  const productAvailability =
+    product?.inStock === false ||
+    product?.stock === 0 ||
+    product?.available === false
+      ? "https://schema.org/OutOfStock"
+      : "https://schema.org/InStock";
+
+  const productSchema = useMemo(() => {
+    if (!product) {
+      return null;
+    }
+
+    const schema = {
+      "@context":
+        "https://schema.org",
+      "@type": "Product",
+      name: seoProductName,
+      image: schemaImages,
+      description:
+        seoLongDescription,
+      sku:
+        product.sku ||
+        product.id ||
+        id,
+      brand: {
+        "@type": "Brand",
+        name: "Opera Jewellery",
+      },
+      offers: {
+        "@type": "Offer",
+        url: canonicalUrl,
+        priceCurrency: "PKR",
+        price:
+          Number(
+            baseEffectivePrice
+          ) || 0,
+        availability:
+          productAvailability,
+        itemCondition:
+          "https://schema.org/NewCondition",
+      },
+    };
+
+    if (
+      reviews.length > 0 &&
+      Number(averageRating) > 0
+    ) {
+      schema.aggregateRating = {
+        "@type":
+          "AggregateRating",
+        ratingValue:
+          Number(averageRating),
+        reviewCount:
+          reviews.length,
+        bestRating: 5,
+        worstRating: 1,
+      };
+    }
+
+    return schema;
+  }, [
+    product,
+    seoProductName,
+    schemaImages,
+    seoLongDescription,
+    id,
+    canonicalUrl,
+    baseEffectivePrice,
+    productAvailability,
+    reviews.length,
+    averageRating,
+  ]);
+
+  const breadcrumbSchema = useMemo(() => {
+    if (!product) {
+      return null;
+    }
+
+    return {
+      "@context":
+        "https://schema.org",
+      "@type":
+        "BreadcrumbList",
+      itemListElement: [
+        {
+          "@type":
+            "ListItem",
+          position: 1,
+          name: "Home",
+          item:
+            typeof window !==
+            "undefined"
+              ? `${window.location.origin}/`
+              : "/",
+        },
+        {
+          "@type":
+            "ListItem",
+          position: 2,
+          name: "Jewelry",
+          item:
+            typeof window !==
+            "undefined"
+              ? `${window.location.origin}/`
+              : "/",
+        },
+        {
+          "@type":
+            "ListItem",
+          position: 3,
+          name: "Zircon Set",
+          item:
+            canonicalUrl,
+        },
+        {
+          "@type":
+            "ListItem",
+          position: 4,
+          name: seoProductName,
+          item:
+            canonicalUrl,
+        },
+      ],
+    };
+  }, [
+    product,
+    canonicalUrl,
+    seoProductName,
+  ]);
+
+  // -----------------------------
   // ADD TO CART
   // -----------------------------
 
@@ -846,15 +1038,12 @@ function Product() {
             reviewPayload
           );
 
-        // Immediately show new review
         setReviews((prev) => [
           {
             id: docRef.id,
 
             ...reviewPayload,
 
-            // serverTimestamp is pending
-            // so give it local date for sorting/display
             createdAt: {
               seconds:
                 Math.floor(
@@ -895,8 +1084,13 @@ function Product() {
       <div className="min-h-screen flex flex-col items-center justify-center bg-white px-4 font-sans">
         <Helmet>
           <title>
-            Product Not Found | Store
+            Product Not Found | Opera Jewellery
           </title>
+
+          <meta
+            name="robots"
+            content="noindex, follow"
+          />
         </Helmet>
 
         <h2 className="text-xs font-bold text-neutral-900 uppercase tracking-widest mb-3">
@@ -926,17 +1120,137 @@ function Product() {
   return (
     <div className="bg-white min-h-screen text-neutral-900 pb-20 font-sans selection:bg-neutral-900 selection:text-white">
       <Helmet>
+        {/* ============================= */}
+        {/* BASIC SEO */}
+        {/* ============================= */}
+
         <title>
-          {productName} | Luxury Store
+          {productName} | Opera Jewellery
         </title>
 
         <meta
           name="description"
-          content={productDesc.slice(
-            0,
-            160
+          content={seoDescription}
+        />
+
+        <meta
+          name="robots"
+          content="index, follow, max-image-preview:large"
+        />
+
+        <link
+          rel="canonical"
+          href={canonicalUrl}
+        />
+
+        {/* ============================= */}
+        {/* OPEN GRAPH / FACEBOOK / WHATSAPP */}
+        {/* ============================= */}
+
+        <meta
+          property="og:type"
+          content="product"
+        />
+
+        <meta
+          property="og:title"
+          content={`${productName} | Opera Jewellery`}
+        />
+
+        <meta
+          property="og:description"
+          content={seoDescription}
+        />
+
+        <meta
+          property="og:url"
+          content={canonicalUrl}
+        />
+
+        <meta
+          property="og:site_name"
+          content="Opera Jewellery"
+        />
+
+        <meta
+          property="og:image"
+          content={seoProductImage}
+        />
+
+        <meta
+          property="og:image:alt"
+          content={productName}
+        />
+
+        <meta
+          property="og:image:type"
+          content="image/jpeg"
+        />
+
+        <meta
+          property="product:price:amount"
+          content={String(
+            baseEffectivePrice
           )}
         />
+
+        <meta
+          property="product:price:currency"
+          content="PKR"
+        />
+
+        {/* ============================= */}
+        {/* TWITTER CARD */}
+        {/* ============================= */}
+
+        <meta
+          name="twitter:card"
+          content="summary_large_image"
+        />
+
+        <meta
+          name="twitter:title"
+          content={`${productName} | Opera Jewellery`}
+        />
+
+        <meta
+          name="twitter:description"
+          content={seoDescription}
+        />
+
+        <meta
+          name="twitter:image"
+          content={seoProductImage}
+        />
+
+        <meta
+          name="twitter:image:alt"
+          content={productName}
+        />
+
+        {/* ============================= */}
+        {/* PRODUCT JSON-LD */}
+        {/* ============================= */}
+
+        {productSchema && (
+          <script type="application/ld+json">
+            {JSON.stringify(
+              productSchema
+            )}
+          </script>
+        )}
+
+        {/* ============================= */}
+        {/* BREADCRUMB JSON-LD */}
+        {/* ============================= */}
+
+        {breadcrumbSchema && (
+          <script type="application/ld+json">
+            {JSON.stringify(
+              breadcrumbSchema
+            )}
+          </script>
+        )}
       </Helmet>
 
       {/* BREADCRUMBS */}
@@ -970,6 +1284,7 @@ function Product() {
 
       <div className="max-w-[1440px] mx-auto px-4 sm:px-8 pt-2">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-start">
+
           {/* LEFT: PRODUCT CARE */}
 
           <div className="lg:col-span-3 space-y-3.5 order-3 lg:order-1 bg-[#FAFAFA] p-4 sm:p-5 rounded-2xl border border-neutral-100 shadow-2xs">
@@ -1065,6 +1380,7 @@ function Product() {
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
+
                   toggleWishlist(
                     product
                   );
@@ -1103,7 +1419,9 @@ function Product() {
                     >
                       <img
                         src={imgUrl}
-                        alt=""
+                        alt={`${productName} - Image ${
+                          idx + 1
+                        }`}
                         width="4000"
                         height="4000"
                         className="w-full h-full object-cover rounded-lg"
@@ -1155,8 +1473,9 @@ function Product() {
                 </div>
 
                 <p className="text-xs sm:text-sm text-neutral-500 tracking-wider mt-1.5 font-medium">
+                  SKU-
                   {product.sku ||
-                    "SKU-2001"}
+                    "2001"}
                 </p>
               </div>
 
@@ -1290,7 +1609,7 @@ function Product() {
                             {vThumb ? (
                               <img
                                 src={vThumb}
-                                alt=""
+                                alt={`${productName} ${colorName}`}
                                 width="100"
                                 height="100"
                                 className="w-6 h-6 object-cover rounded-md border border-black/10 shrink-0"
@@ -1426,6 +1745,41 @@ function Product() {
                 ORDER VIA WHATSAPP
               </button>
             </div>
+
+            {/* PRODUCT DESCRIPTION ACCORDION */}
+
+            <div className="border-t border-neutral-100 pt-3">
+              <button
+                type="button"
+                onClick={() =>
+                  setIsDescriptionOpen(
+                    (prev) => !prev
+                  )
+                }
+                className="w-full flex items-center justify-between py-3 text-left"
+              >
+                <span className="text-xs font-bold text-neutral-900 uppercase tracking-wider">
+                  Product Description
+                </span>
+                <span className="w-7 h-7 rounded-full border border-neutral-200 flex items-center justify-center text-neutral-700">
+                  <span className="text-lg leading-none font-light">
+                    {isDescriptionOpen
+                      ? "−"
+                      : "+"}
+                  </span>
+                </span>
+              </button>
+              {isDescriptionOpen && (
+                <div className="pb-3 pt-1">
+                  <div
+                    className="text-xs text-neutral-600 leading-relaxed prose prose-neutral max-w-none"
+                    dangerouslySetInnerHTML={{
+                      __html: productDesc,
+                    }}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -1484,7 +1838,8 @@ function Product() {
                           src={itemImg}
                           alt={
                             item.name ||
-                            item.title
+                            item.title ||
+                            "Related jewellery product"
                           }
                           width="1000"
                           height="1000"
@@ -1536,7 +1891,7 @@ function Product() {
               selectedImage ||
               FALLBACK_IMAGE
             }
-            alt="Zoomed"
+            alt={`${productName} - Full Size`}
             className="max-w-full max-h-[90vh] object-contain rounded-xl"
             onClick={(e) =>
               e.stopPropagation()

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 import banner1 from "../assets/banner1.jpg";
 import banner2 from "../assets/banner2.jpg";
@@ -20,7 +21,9 @@ function Hero() {
 
   const goToPrevious = () => {
     if (banners.length === 0) return;
-    setCurrentIndex((prevIndex) => (prevIndex - 1 + banners.length) % banners.length);
+    setCurrentIndex(
+      (prevIndex) => (prevIndex - 1 + banners.length) % banners.length
+    );
   };
 
   const goToNext = () => {
@@ -29,7 +32,11 @@ function Hero() {
   };
 
   if (banners.length === 0) {
-    return <div className="w-full h-48 bg-black text-white flex items-center justify-center">Banners not found</div>;
+    return (
+      <div className="w-full h-48 bg-black text-white flex items-center justify-center">
+        Banners not found
+      </div>
+    );
   }
 
   return (
@@ -78,11 +85,10 @@ function Hero() {
           </div>
         ))}
 
-        {/* Mobile Banner Text & CTA */}
+        {/* Banner Text & CTA */}
         <div
           className="
             absolute
-            md:hidden
             left-0
             right-0
             bottom-12
@@ -121,8 +127,9 @@ function Hero() {
             Elegance You Deserve
           </h2>
 
-          <a
-            href="/shop"
+          {/* SHOP NOW */}
+          <Link
+            to="/shop"
             className="
               mt-3
               px-5
@@ -137,10 +144,11 @@ function Hero() {
               shadow-lg
               hover:bg-[#E6CA65]
               transition
+              cursor-pointer
             "
           >
             Shop Now
-          </a>
+          </Link>
         </div>
 
         {/* Previous Button */}
@@ -181,7 +189,11 @@ function Hero() {
             stroke="currentColor"
             strokeWidth="2"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M15 19l-7-7 7-7"
+            />
           </svg>
         </button>
 
@@ -223,7 +235,11 @@ function Hero() {
             stroke="currentColor"
             strokeWidth="2"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M9 5l7 7-7 7"
+            />
           </svg>
         </button>
 

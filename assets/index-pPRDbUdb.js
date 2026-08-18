@@ -3746,7 +3746,6 @@ This typically indicates that your device does not have a healthy Internet conne
                 to-transparent\r
               `})]},a)),o.jsxs("div",{className:`\r
             absolute\r
-            md:hidden\r
             left-0\r
             right-0\r
             bottom-12\r
